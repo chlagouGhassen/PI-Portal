@@ -50,8 +50,6 @@ services:
   - type: web
     name: pi-portal-frontend
     runtime: static
-    plan: free
-    region: frankfurt
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist

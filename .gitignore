@@ -55,6 +55,4 @@ backend/uploads/
 # Couverture de tests
 coverage/
 
-# Claude file
-.claude
-CLAUDE.md
+notes.txt

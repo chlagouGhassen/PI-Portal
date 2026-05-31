@@ -49,21 +49,26 @@ async function main() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? 'admin@pi-portal.local';
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? DEFAULT_ADMIN_PASSWORD;
   const demoEmail = process.env.SEED_DEMO_EMAIL ?? 'demo@pi-portal.local';
-  const demoPassword = process.env.SEED_DEMO_PASSWORD ?? DEFAULT_DEMO_PASSWORD;
+  const demoPasswordRaw = process.env.SEED_DEMO_PASSWORD;
+  const demoPassword = demoPasswordRaw ?? DEFAULT_DEMO_PASSWORD;
+  const isProduction = process.env.NODE_ENV === 'production';
 
-  // Garde-fou : refuser les mots de passe par défaut en production.
-  if (process.env.NODE_ENV === 'production') {
-    if (adminPassword === DEFAULT_ADMIN_PASSWORD || demoPassword === DEFAULT_DEMO_PASSWORD) {
-      console.error(
-        '❌ Refus de seed avec un mot de passe par défaut en production.\n' +
-          '   Définissez SEED_ADMIN_PASSWORD (et SEED_DEMO_PASSWORD si vous voulez le user démo).',
-      );
-      process.exit(1);
-    }
+  // Garde-fou ADMIN : on REFUSE absolument le mot de passe par défaut en prod
+  // (sinon n'importe qui peut login avec ChangeMe!2026).
+  if (isProduction && adminPassword === DEFAULT_ADMIN_PASSWORD) {
+    console.error(
+      '❌ Refus de seed admin avec mot de passe par défaut en production.\n' +
+        '   Définissez SEED_ADMIN_PASSWORD.',
+    );
+    process.exit(1);
   }
 
+  // DÉMO : en prod, on skip si SEED_DEMO_PASSWORD n'est pas explicitement set
+  // (au lieu de refuser tout le seed). Permet de seeder juste l'admin en prod
+  // sans avoir à set 2 env vars.
+  const skipDemo = isProduction && demoPasswordRaw === undefined;
+
   const adminHash = await bcrypt.hash(adminPassword, 12);
-  const demoHash = await bcrypt.hash(demoPassword, 12);
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
@@ -71,11 +76,15 @@ async function main() {
     create: { email: adminEmail, password: adminHash, name: 'Administrateur', role: 'ADMIN' },
   });
 
-  const demo = await prisma.user.upsert({
-    where: { email: demoEmail },
-    update: {},
-    create: { email: demoEmail, password: demoHash, name: 'Utilisateur démo', role: 'USER' },
-  });
+  let demo: { id: string; email: string } | null = null;
+  if (!skipDemo) {
+    const demoHash = await bcrypt.hash(demoPassword, 12);
+    demo = await prisma.user.upsert({
+      where: { email: demoEmail },
+      update: {},
+      create: { email: demoEmail, password: demoHash, name: 'Utilisateur démo', role: 'USER' },
+    });
+  }
 
   const dashboards = [];
   for (const d of DASHBOARDS) {
@@ -92,17 +101,23 @@ async function main() {
   // utilisé pour parcourir l'app). On itère sur le tableau au lieu d'une liste
   // de slugs hardcodée → si on ajoute un dashboard via le seed, demo y aura
   // accès automatiquement sans intervention.
-  for (const dash of dashboards) {
-    await prisma.dashboardAccess.upsert({
-      where: { userId_dashboardId: { userId: demo.id, dashboardId: dash.id } },
-      update: {},
-      create: { userId: demo.id, dashboardId: dash.id },
-    });
+  if (demo) {
+    for (const dash of dashboards) {
+      await prisma.dashboardAccess.upsert({
+        where: { userId_dashboardId: { userId: demo.id, dashboardId: dash.id } },
+        update: {},
+        create: { userId: demo.id, dashboardId: dash.id },
+      });
+    }
   }
 
   console.log('✓ Seed terminé');
   console.log(`  ADMIN: ${admin.email} / ${adminPassword}`);
-  console.log(`  USER:  ${demo.email} / ${demoPassword}  (accès à ${dashboards.length}/${DASHBOARDS.length} dashboards)`);
+  if (demo) {
+    console.log(`  USER:  ${demo.email} / ${demoPassword}  (accès à ${dashboards.length}/${DASHBOARDS.length} dashboards)`);
+  } else if (skipDemo) {
+    console.log('  USER:  skipped (SEED_DEMO_PASSWORD non défini en production)');
+  }
   console.log(`  Dashboards: ${dashboards.map((d) => d.slug).join(', ')}`);
 }
 

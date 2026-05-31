@@ -16,7 +16,18 @@ const baseSchema = z.object({
   // 'none' = obligatoire pour cross-origin (frontend / backend domaines
   // différents, ex. Vercel + Render). 'none' EXIGE COOKIE_SECURE=true.
   COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
-  CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  // Auto-normalise : si Render passe juste le hostname (ex. "pi-portal-frontend"
+  // via fromService.property:host), on préfixe https:// pour avoir un Origin
+  // complet matchable par le middleware cors.
+  CORS_ORIGIN: z
+    .string()
+    .default('http://localhost:5173')
+    .transform((v) => {
+      const trimmed = v.trim().replace(/\/$/, '');
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+      // Sans schéma → on suppose HTTPS (cas Render production)
+      return https://${trimmed}${trimmed.includes('.') ? '' : '.onrender.com'};
+    }),
   // Nombre de hops de reverse proxy pour express-rate-limit. 0 = pas de proxy.
   // Derrière nginx/Cloud Run/etc. : généralement 1.
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
@@ -36,9 +47,9 @@ const data = parsed.data;
 if (data.NODE_ENV === 'production') {
   const issues: string[] = [];
 
-  // if (data.JWT_SECRET.length < 64) {
-  //   issues.push('JWT_SECRET doit faire au moins 64 caractères en production');
-  // }
+  // 32 chars minimum (baseline Zod) couvre Render generateValue (~43 chars
+  // base64url de 32 bytes = 256 bits, suffisant pour HS256). On vérifie juste
+  // ici qu'on n'utilise pas la valeur de dev par défaut.
   if (data.JWT_SECRET === DEFAULT_DEV_JWT) {
     issues.push('JWT_SECRET utilise la valeur de dev par défaut - INACCEPTABLE en prod');
   }

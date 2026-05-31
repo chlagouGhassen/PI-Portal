@@ -1,8 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { ApiError } from '@/lib/api';
-
-const API_BASE = import.meta.env.VITE_API_URL ?? '/api';
+import { API_BASE, ApiError } from '@/lib/api';
 
 export interface PageMeta {
   id: string;
@@ -33,7 +31,7 @@ export interface ImportSummary {
 async function uploadFile<T>(path: string, fieldName: string, file: File): Promise<T> {
   const formData = new FormData();
   formData.append(fieldName, file);
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(${API_BASE}${path}, {
     method: 'POST',
     credentials: 'include',
     body: formData,

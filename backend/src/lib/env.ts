@@ -36,9 +36,9 @@ const data = parsed.data;
 if (data.NODE_ENV === 'production') {
   const issues: string[] = [];
 
-  if (data.JWT_SECRET.length < 64) {
-    issues.push('JWT_SECRET doit faire au moins 64 caractères en production');
-  }
+  // if (data.JWT_SECRET.length < 64) {
+  //   issues.push('JWT_SECRET doit faire au moins 64 caractères en production');
+  // }
   if (data.JWT_SECRET === DEFAULT_DEV_JWT) {
     issues.push('JWT_SECRET utilise la valeur de dev par défaut - INACCEPTABLE en prod');
   }

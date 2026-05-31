@@ -15,11 +15,11 @@ function resolveApiBase(): string {
   // Ajoute le schéma si absent
   if (!base.startsWith('http://') && !base.startsWith('https://')) {
     // Si pas de TLD apparent, assume Render service shortname
-    base = base.includes('.') ? https://${base} : https://${base}.onrender.com;
+    base = base.includes('.') ? `https://${base}` : `https://${base}.onrender.com`;
   }
 
   // S'assure que la base finit par /api
-  if (!base.endsWith('/api')) base = ${base}/api;
+  if (!base.endsWith('/api')) base = `${base}/api`;
 
   return base;
 }
@@ -37,7 +37,7 @@ export class ApiError extends Error {
 }
 
 export async function api<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(${API_BASE}${path}, {
+  const res = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',

@@ -31,7 +31,7 @@ export interface ImportSummary {
 async function uploadFile<T>(path: string, fieldName: string, file: File): Promise<T> {
   const formData = new FormData();
   formData.append(fieldName, file);
-  const res = await fetch(${API_BASE}${path}, {
+  const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     credentials: 'include',
     body: formData,

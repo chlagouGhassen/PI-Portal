@@ -1,37 +1,4 @@
-[17:06, 31/05/2026] Hama: import { useMutation, useQueryClient } from '@tanstack/react-query';
-
-import { API_BASE, ApiError } from '@/lib/api';
-
-export interface PageMeta {
-  id: string;
-  displayName: string;
-  visualCount: number;
-  visualTypes: Record<string, number>;
-}
-
-export interface PbixMetadata {
-  pages: PageMeta[];
-  tables: string[];
-  columns: string[];
-  visualTypeCounts: Record<string, number>;
-  customVisuals: string[];
-  totalVisuals: number;
-}
-
-export interface ImportSummary {
-  dimEntreprise: number;
-  dimTemps: number;
-  dimBilan: number;
-  dimResultat: number;
-  dimRatios: number;
-  factPerformance: number;
-  skippedOrphans: number;
-}
-
-async function uploadFile<T>(path: string, fieldName: string, file: File): Promise<T> {
-  const formData = new FormData();
-  form…
-[17:06, 31/05/2026] Hama: import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, API_BASE, ApiError } from '@/lib/api';
 
 export type BourseEntreprise = 'EUROCYCLE' | 'NBL' | 'SAH' | 'PLAST';
@@ -58,7 +25,7 @@ export function useUploadBourse() {
       const fd = new FormData();
       fd.append('file', file);
       fd.append('entreprise', entreprise);
-      const res = await fetch(${API_BASE}/admin/bourse/upload, {
+      const res = await fetch(`${API_BASE}/admin/bourse/upload`, {
         method: 'POST',
         credentials: 'include',
         body: fd,

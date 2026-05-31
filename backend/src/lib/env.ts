@@ -26,7 +26,7 @@ const baseSchema = z.object({
       const trimmed = v.trim().replace(/\/$/, '');
       if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
       // Sans schéma → on suppose HTTPS (cas Render production)
-      return https://${trimmed}${trimmed.includes('.') ? '' : '.onrender.com'};
+      return `https://${trimmed}${trimmed.includes('.') ? '' : '.onrender.com'}`;
     }),
   // Nombre de hops de reverse proxy pour express-rate-limit. 0 = pas de proxy.
   // Derrière nginx/Cloud Run/etc. : généralement 1.

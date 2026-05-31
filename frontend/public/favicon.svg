@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <!-- Fond ambre arrondi, identique au container du BrandMark dans la sidebar
+       (bg-accent #f5a623, rounded ~22%) -->
+  <rect width="40" height="40" rx="9" fill="#f5a623"/>
+  <!-- Monogramme "PI" géométrique, trait ink-950, square caps pour le côté architectural -->
+  <g fill="none" stroke="#0a0d12" stroke-width="2.5" stroke-linecap="square">
+    <!-- P : barre verticale + arche compacte -->
+    <path d="M11 9 L11 31"/>
+    <path d="M11 9 L18 9 Q23 9 23 14 Q23 19 18 19 L11 19" stroke-linejoin="miter" fill="none"/>
+    <!-- I : barre verticale simple -->
+    <path d="M29 9 L29 31"/>
+  </g>
+  <!-- Tick baseline subtil pour évoquer la moyenne d'un chart -->
+  <path d="M11 34.5 L29 34.5" stroke="#0a0d12" stroke-width="1" stroke-opacity="0.4"/>
+</svg>

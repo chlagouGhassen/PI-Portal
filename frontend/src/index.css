@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Direction : « console analytique éditoriale »
+   - Charcoal profond + ambre comme matière de signalétique
+   - Bricolage Grotesque variable (opsz axis exploité)
+   - Bracket corners pour les blocs data
+   - Hairlines, séparateurs typés mono
+   ───────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-ink-950 text-slate-100 font-sans antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(245, 166, 35, 0.08), transparent 50%),
+      radial-gradient(ellipse 60% 40% at 95% 110%, rgba(245, 166, 35, 0.04), transparent 60%);
+  }
+  ::selection {
+    @apply bg-accent/30 text-slate-50;
+  }
+  :focus {
+    outline: none;
+  }
+  *:focus-visible {
+    @apply ring-2 ring-accent ring-offset-2 ring-offset-ink-950 rounded;
+  }
+}
+
+@layer components {
+  /* Hairline horizontal avec breakpoint amber */
+  .hairline {
+    @apply h-px w-full bg-ink-700;
+  }
+  .hairline-accent {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      #f5a623 8%,
+      #f5a623 14%,
+      rgba(245, 166, 35, 0.3) 14%,
+      rgba(245, 166, 35, 0.15) 30%,
+      #1e2733 30%,
+      #1e2733 100%
+    );
+    @apply h-px;
+  }
+
+  /* Card "data console" : coins équerres ┌ ┐ └ ┘ en pseudo-éléments */
+  .bracket-card {
+    @apply relative;
+  }
+  .bracket-card::before,
+  .bracket-card::after {
+    content: '';
+    @apply absolute w-3 h-3 pointer-events-none;
+    border-color: theme('colors.accent.DEFAULT');
+    opacity: 0.55;
+  }
+  .bracket-card::before {
+    @apply top-0 left-0;
+    border-top: 1px solid;
+    border-left: 1px solid;
+  }
+  .bracket-card::after {
+    @apply bottom-0 right-0;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
+  }
+  .bracket-card > .bracket-tr,
+  .bracket-card > .bracket-bl {
+    @apply absolute block w-3 h-3 pointer-events-none;
+    border-color: theme('colors.accent.DEFAULT');
+    opacity: 0.55;
+  }
+  .bracket-card > .bracket-tr {
+    @apply top-0 right-0;
+    border-top: 1px solid;
+    border-right: 1px solid;
+  }
+  .bracket-card > .bracket-bl {
+    @apply bottom-0 left-0;
+    border-bottom: 1px solid;
+    border-left: 1px solid;
+  }
+
+  /* Skeleton shimmer ambre - remplace l'animate-pulse plat */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(14, 19, 26, 0.6) 0%,
+      rgba(30, 39, 51, 0.8) 50%,
+      rgba(14, 19, 26, 0.6) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Caret/cursor blink pour éléments "terminal" */
+  .caret::after {
+    content: '▌';
+    @apply text-accent ml-0.5;
+    animation: blink 1.05s steps(2, start) infinite;
+  }
+  @keyframes blink {
+    to { visibility: hidden; }
+  }
+
+  /* Numbered section header - éditorial */
+  .section-no {
+    font-feature-settings: 'ss01', 'tnum';
+    @apply font-mono text-accent/80 tracking-[0.2em];
+  }
+
+  /* Border dashed avec pointillé serré pour dropzones */
+  .border-dotted-tight {
+    background-image: repeating-linear-gradient(
+      90deg, theme('colors.ink.600') 0 4px, transparent 4px 8px
+    ),
+    repeating-linear-gradient(
+      0deg, theme('colors.ink.600') 0 4px, transparent 4px 8px
+    ),
+    repeating-linear-gradient(
+      90deg, theme('colors.ink.600') 0 4px, transparent 4px 8px
+    ),
+    repeating-linear-gradient(
+      0deg, theme('colors.ink.600') 0 4px, transparent 4px 8px
+    );
+    background-size: 1px 100%, 100% 1px, 1px 100%, 100% 1px;
+    background-position: 0 0, 0 0, 100% 0, 0 100%;
+    background-repeat: no-repeat;
+  }
+
+  /* Style sélectif pour les boutons primaires "data action" */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-accent text-ink-950 font-semibold px-4 py-2.5
+           hover:bg-accent-soft active:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed
+           transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+           focus-visible:ring-offset-ink-950;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-ink-700 bg-ink-900/40
+           text-slate-300 hover:border-ink-500 hover:text-slate-100 hover:bg-ink-900
+           transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent
+           focus-visible:ring-offset-2 focus-visible:ring-offset-ink-950 px-3.5 py-2 text-sm;
+  }
+
+  /* Display ultra-large : exploite l'opsz variable de Bricolage Grotesque */
+  .display-mega {
+    @apply font-display tabular-nums tracking-tight;
+    font-variation-settings: 'opsz' 96, 'wght' 700;
+    line-height: 0.9;
+  }
+  .display-xl {
+    @apply font-display tabular-nums;
+    font-variation-settings: 'opsz' 48, 'wght' 700;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+  }
+  .display-l {
+    @apply font-display;
+    font-variation-settings: 'opsz' 32, 'wght' 600;
+    letter-spacing: -0.015em;
+  }
+}

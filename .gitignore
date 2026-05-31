@@ -1,0 +1,60 @@
+# Dépendances
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+
+# Env (les .env.example sont versionnés)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+backend/prisma/migrations/migration_lock.toml.bak
+
+# Données extraites du .pbix (CSV peuvent contenir des données métier sensibles)
+backend/prisma/seed-data/*.csv
+!backend/prisma/seed-data/.gitkeep
+
+# Données bourse uploadées par l'admin (cours journaliers — peuvent être sensibles)
+data/bourse/*.xls
+data/bourse/*.csv
+
+# Python venv backend (deps lourdes : sklearn, statsmodels, pbixray)
+backend/.venv/
+
+# Postgres data volume local
+postgres-data/
+
+# Uploads backend (placeholder pour futures features)
+backend/uploads/
+
+# Couverture de tests
+coverage/
+
+# Claude file
+.claude
+CLAUDE.md

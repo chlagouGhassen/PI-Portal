@@ -1,0 +1,74 @@
+# Render Blueprint — infrastructure as code.
+# Dépose ce fichier à la racine du repo + relie ton compte Render à GitHub,
+# Render crée automatiquement les 3 services au premier "Apply" du blueprint.
+#
+# https://render.com/docs/blueprint-spec
+
+databases:
+  - name: pi-portal-db
+    plan: free          # 1 GB · expire après 90 jours en free (paid : $7/mo)
+    databaseName: pi_portal
+    user: pi_portal
+
+services:
+  # ─── Backend Node + Python (Docker) ───────────────────────────────────────
+  - type: web
+    name: pi-portal-backend
+    runtime: docker
+    plan: free          # 512 MB RAM · spin-down après 15 min inactif
+    region: frankfurt   # plus près de la Tunisie que oregon (default)
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pi-portal-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true  # Render génère 256 bits aléatoires au premier deploy
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: none          # frontend sur domaine différent → cross-site
+      - key: CORS_ORIGIN
+        fromService:
+          type: web
+          name: pi-portal-frontend
+          property: host
+      - key: TRUST_PROXY
+        value: "1"
+      - key: PYTHON_BIN
+        value: /app/.venv/bin/python
+      - key: BOURSE_DATA_DIR
+        value: /app/data/bourse
+
+  # ─── Frontend static (Vite build → CDN gratuit) ──────────────────────────
+  - type: web
+    name: pi-portal-frontend
+    runtime: static
+    plan: free
+    region: frankfurt
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: pi-portal-backend
+          property: host
+    # SPA fallback : toute route renvoie index.html (React Router prend la main)
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Headers cache pour les assets fingerprintés Vite
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

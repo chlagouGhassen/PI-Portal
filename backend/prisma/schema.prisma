@@ -1,0 +1,214 @@
+// Schéma Prisma - phases 1-4 + refactor pbixray.
+// Modèles app : User, Dashboard, DashboardAccess (RBAC + registre).
+// Modèles métier : miroir exact des tables du .pbix, importés via le pipeline
+// Python (scripts/extract_pbix.py + services/pbix-import.service.ts).
+//
+// Convention :
+//   - Champs Prisma en camelCase (idiomatique TS).
+//   - Colonnes Postgres en PascalCase via @map (matche les noms du .pbix
+//     → import trivial sans renaming, debug SQL lisible vs source).
+//   - Mesures financières nullables (les .pbix ont des NaN sur des cellules
+//     manquantes - converties en NULL côté Python).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Application : auth, RBAC, registre des dashboards
+// ────────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id        String            @id @default(cuid())
+  email     String            @unique
+  password  String
+  name      String
+  role      Role              @default(USER)
+  access    DashboardAccess[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model Dashboard {
+  id          String            @id @default(cuid())
+  slug        String            @unique
+  title       String
+  description String?
+  category    String?
+  access      DashboardAccess[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model DashboardAccess {
+  userId      String
+  dashboardId String
+  grantedAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@id([userId, dashboardId])
+  @@index([dashboardId])
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Métier : miroir exact du modèle en étoile du .pbix
+// ────────────────────────────────────────────────────────────────────────────
+
+model DimEntreprise {
+  entrepriseId  Int    @id @map("EntrepriseID")
+  nomEntreprise String @map("NomEntreprise")
+
+  bilans       DimBilan[]
+  resultats    DimResultat[]
+  ratios       DimRatios[]
+  performances FactPerformance[]
+
+  @@map("DimEntreprise")
+}
+
+model DimTemps {
+  anneeId      Int     @id @map("AnneeID")
+  annee        Int     @map("Annee")
+  periodeLabel String? @map("PeriodeLabel")
+
+  bilans       DimBilan[]
+  resultats    DimResultat[]
+  ratios       DimRatios[]
+  performances FactPerformance[]
+
+  @@map("DimTemps")
+}
+
+model DimBilan {
+  bilanId                  Int    @id @map("BilanID")
+  entrepriseId             Int    @map("EntrepriseID")
+  anneeId                  Int    @map("AnneeID")
+  totalActif               Float? @map("TotalActif")
+  actifsNonCourants        Float? @map("ActifsNonCourants")
+  actifsCourants           Float? @map("ActifsCourants")
+  stocks                   Float? @map("Stocks")
+  creancesClients          Float? @map("CreancesClients")
+  tresorerie               Float? @map("Tresorerie")
+  totalPassif              Float? @map("TotalPassif")
+  capitauxPropresAvtResult Float? @map("CapitauxPropresAvtResult")
+  capitauxPropres          Float? @map("CapitauxPropres")
+  dettesLT                 Float? @map("DettesLT")
+  passifsCourants          Float? @map("PassifsCourants")
+  detteFournisseurs        Float? @map("DetteFournisseurs")
+  emprunt                  Float? @map("Emprunt")
+  totalCapitauxPassif      Float? @map("TotalCapitauxPassif")
+  produitExploitation      Float? @map("ProduitExploitation")
+  chargesExploitation      Float? @map("ChargesExploitation")
+  fluxTresoExploitation    Float? @map("FluxTresoExploitation")
+  fluxTresoInvestissement  Float? @map("FluxTresoInvestissement")
+  fluxTresoFinancement     Float? @map("FluxTresoFinancement")
+  variationTresorerie      Float? @map("VariationTresorerie")
+  capitalSocial            Float? @map("CapitalSocial")
+  chargesPersonnel         Float? @map("ChargesPersonnel")
+
+  entreprise   DimEntreprise     @relation(fields: [entrepriseId], references: [entrepriseId])
+  temps        DimTemps          @relation(fields: [anneeId], references: [anneeId])
+  performances FactPerformance[]
+
+  @@index([entrepriseId, anneeId])
+  @@map("DimBilan")
+}
+
+model DimResultat {
+  resultatId                Int    @id @map("ResultatID")
+  entrepriseId              Int    @map("EntrepriseID")
+  anneeId                   Int    @map("AnneeID")
+  chiffreAffaires           Float? @map("ChiffreAffaires")
+  totalProduitsExploitation Float? @map("TotalProduitsExploitation")
+  coutDesVentes             Float? @map("CoutDesVentes")
+  totalChargesExploitation  Float? @map("TotalChargesExploitation")
+  ebit                      Float? @map("EBIT")
+  chargesFinancieres        Float? @map("ChargesFinancieres")
+  resultatNet               Float? @map("ResultatNet")
+  fluxTresoExploitation     Float? @map("FluxTresoExploitation")
+
+  entreprise   DimEntreprise     @relation(fields: [entrepriseId], references: [entrepriseId])
+  temps        DimTemps          @relation(fields: [anneeId], references: [anneeId])
+  performances FactPerformance[]
+
+  @@index([entrepriseId, anneeId])
+  @@map("DimResultat")
+}
+
+model DimRatios {
+  ratiosId                Int    @id @map("RatiosID")
+  entrepriseId            Int    @map("EntrepriseID")
+  anneeId                 Int    @map("AnneeID")
+  bfr                     Float? @map("BFR")
+  fondsDeRoulement        Float? @map("FondsDeRoulement")
+  tresorerieNette         Float? @map("TresorerieNette")
+  ratioImmobilisation     Float? @map("RatioImmobilisation")
+  ratioActifCourant       Float? @map("RatioActifCourant")
+  ratioStocksActifCourant Float? @map("RatioStocksActifCourant")
+  ratioCreancesCA         Float? @map("RatioCreancesCA")
+  tauxEndettement         Float? @map("TauxEndettement")
+  tauxEndettementNet      Float? @map("TauxEndettementNet")
+  couvertureChargesFinanc Float? @map("CouvertureChargesFinanc")
+  autonomieFinanciere     Float? @map("AutonomiFinanciere")
+  solvabilite             Float? @map("Solvabilite")
+  currentRatio            Float? @map("CurrentRatio")
+  quickRatio              Float? @map("QuickRatio")
+  cashRatio               Float? @map("CashRatio")
+  roe                     Float? @map("ROE")
+  roa                     Float? @map("ROA")
+  roce                    Float? @map("ROCE")
+  margeNette              Float? @map("MargeNette")
+  margeBrute              Float? @map("MargeBrute")
+  rotationStocks          Float? @map("RotationStocks")
+  dso                     Float? @map("DSO")
+  dpo                     Float? @map("DPO")
+  rotationActifs          Float? @map("RotationActifs")
+
+  entreprise   DimEntreprise     @relation(fields: [entrepriseId], references: [entrepriseId])
+  temps        DimTemps          @relation(fields: [anneeId], references: [anneeId])
+  performances FactPerformance[]
+
+  @@index([entrepriseId, anneeId])
+  @@map("DimRatios")
+}
+
+model FactPerformance {
+  factId          Int    @id @map("FactID")
+  entrepriseId    Int    @map("EntrepriseID")
+  anneeId         Int    @map("AnneeID")
+  bilanId         Int?   @map("BilanID")
+  ratiosId        Int?   @map("RatiosID")
+  resultatId      Int?   @map("ResultatID")
+  totalActif      Float? @map("TotalActif")
+  capitauxPropres Float? @map("CapitauxPropres")
+  chiffreAffaires Float? @map("ChiffreAffaires")
+  resultatNet     Float? @map("ResultatNet")
+  ebit            Float? @map("EBIT")
+  roe             Float? @map("ROE")
+  roa             Float? @map("ROA")
+  roce            Float? @map("ROCE")
+  margeNette      Float? @map("MargeNette")
+  margeBrute      Float? @map("MargeBrute")
+  bfr             Float? @map("BFR")
+  currentRatio    Float? @map("CurrentRatio")
+
+  entreprise DimEntreprise @relation(fields: [entrepriseId], references: [entrepriseId])
+  temps      DimTemps      @relation(fields: [anneeId], references: [anneeId])
+  bilan      DimBilan?     @relation(fields: [bilanId], references: [bilanId])
+  ratios     DimRatios?    @relation(fields: [ratiosId], references: [ratiosId])
+  resultat   DimResultat?  @relation(fields: [resultatId], references: [resultatId])
+
+  @@index([entrepriseId, anneeId])
+  @@map("FactPerformance")
+}

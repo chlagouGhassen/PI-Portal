@@ -7,6 +7,7 @@
 databases:
   - name: pi-portal-db
     plan: free          # 1 GB · expire après 90 jours en free (paid : $7/mo)
+    region: frankfurt 
     databaseName: pi_portal
     user: pi_portal
 
